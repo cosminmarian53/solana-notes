@@ -8,63 +8,102 @@ declare_id!("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ");
 pub mod notes {
     use super::*;
 
-  pub fn close(_ctx: Context<CloseNotes>) -> Result<()> {
-    Ok(())
-  }
+    pub fn create_note(ctx: Context<CreateNote>, title: String, content: String) -> Result<()> {
+        let note = &mut ctx.accounts.note;
+        note.owner = *ctx.accounts.owner.key;
+        note.title = title;
+        note.content = content;
 
-  pub fn decrement(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.notes.count = ctx.accounts.notes.count.checked_sub(1).unwrap();
-    Ok(())
-  }
+        Ok(())
+    }
 
-  pub fn increment(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.notes.count = ctx.accounts.notes.count.checked_add(1).unwrap();
-    Ok(())
-  }
+    pub fn update_note(ctx: Context<UpdateNote>, _title: String, content: String) -> Result<()> {
+        let note = &mut ctx.accounts.note;
+        note.content = content;
+        Ok(())
+    }
+    
+    pub fn delete_note(_ctx: Context<DeleteNote>, _title: String) -> Result<()> {
+        Ok(())
+    }
 
-  pub fn initialize(_ctx: Context<InitializeNotes>) -> Result<()> {
-    Ok(())
-  }
-
-  pub fn set(ctx: Context<Update>, value: u8) -> Result<()> {
-    ctx.accounts.notes.count = value.clone();
-    Ok(())
-  }
 }
 
-#[derive(Accounts)]
-pub struct InitializeNotes<'info> {
-  #[account(mut)]
-  pub payer: Signer<'info>,
-
-  #[account(
-  init,
-  space = 8 + Notes::INIT_SPACE,
-  payer = payer
-  )]
-  pub notes: Account<'info, Notes>,
-  pub system_program: Program<'info, System>,
-}
-#[derive(Accounts)]
-pub struct CloseNotes<'info> {
-  #[account(mut)]
-  pub payer: Signer<'info>,
-
-  #[account(
-  mut,
-  close = payer, // close account and return lamports to payer
-  )]
-  pub notes: Account<'info, Notes>,
-}
-
-#[derive(Accounts)]
-pub struct Update<'info> {
-  #[account(mut)]
-  pub notes: Account<'info, Notes>,
-}
-
+// Define the Note struct--the data structure that will be stored on-chain.
+// The `#[account]` attribute is used to define a Solana account.
+// The `#[derive(InitSpace)]` attribute is used to derive the `InitSpace` trait.
 #[account]
 #[derive(InitSpace)]
-pub struct Notes {
-  count: u8,
+pub struct Note {
+    pub owner: Pubkey,
+
+    #[max_len(64)]
+    pub title: String,
+
+    #[max_len(1024)]
+    pub content: String,
+}
+
+// Define the CreateNote struct.
+// The `#[derive(Accounts)]` attribute is used to derive the `Accounts` trait.
+// The `Accounts` trait is used to define the accounts that are required to execute a program instruction.
+#[derive(Accounts)]
+#[instruction(title: String)]
+pub struct CreateNote<'info> {
+    #[account(
+    init,
+    seeds =[title.as_bytes(), owner.key().as_ref()],
+    bump,
+    space = 8 + Note::INIT_SPACE,
+    payer = owner,
+  )]
+    pub note: Account<'info, Note>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+// Define the UpdateNote struct.
+// The `#[derive(Accounts)]` attribute is used to derive the `Accounts` trait.
+// The `Accounts` trait is used to define the accounts that are required to execute a program instruction.
+
+#[derive(Accounts)]
+#[instruction(title: String)]
+pub struct UpdateNote<'info> {
+    #[account(
+      mut,
+      seeds = [title.as_bytes(), owner.key().as_ref()],
+      bump,
+      realloc = 8 + Note::INIT_SPACE,
+      realloc::payer = owner,
+      realloc::zero = true,
+    )]
+    pub note: Account<'info, Note>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+// Define the DeleteNote struct.
+
+
+#[derive(Accounts)]
+#[instruction(title: String)]
+pub struct DeleteNote<'info> {
+    #[account(
+      mut,
+      seeds = [title.as_bytes(), owner.key().as_ref()],
+      bump,
+      close = owner,  
+    )]
+    pub note: Account<'info, Note>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }
