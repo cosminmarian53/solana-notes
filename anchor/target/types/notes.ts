@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/notes.json`.
  */
 export type Notes = {
-  "address": "AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZZ",
+  "address": "3fAgEi4PHAtqCCi3dAGMAib376CgbWwA5LQKFGWybiXt",
   "metadata": {
     "name": "notes",
     "version": "0.1.0",
